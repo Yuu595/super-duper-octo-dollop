@@ -13,6 +13,7 @@ One commit per fix, in priority order:
 3. **MCP** (`9354504`, `771e024`): handler reads `repo_path`; input typed from the zod schema (no `any`); the repo path must resolve (realpath) inside `INSPECTOR_ALLOWED_ROOTS`; validation commands run only on an exact match with `INSPECTOR_ALLOWED_VALIDATIONS`; errors return `isError` instead of throwing; fails closed when no roots are configured. Split into `createServer()` so it is tested through a real MCP client (InMemoryTransport).
 4. **Git** (`5a0572d`): a base ref starting with `-` is rejected (`--output=<file>` let git write files) and refs are verified with `rev-parse --verify --end-of-options`; default base is origin/HEAD → main → master; clear errors for a missing path or a non-repo; 30 s timeout. Also covered by an MCP regression test.
 5. **CLI** (`0abde98`): strict `node:util` parseArgs; paths with spaces; real `--format json`; `--output` (`-` = stdout); exit codes 0 / 1 / 2; one-line errors. `collectReview` and `formatReview` in core are shared by both adapters; `reviewRepository` keeps its signature.
+6. **Test setup** (`vitest.config.ts`): CI runs `npm run build` before `npm test`, and Vitest 4 also ran the compiled tests in `dist/`. Limited Vitest to `test/` so CI is green again.
 
 Tests went from 1 to 25.
 
@@ -53,11 +54,13 @@ I used Claude (chat) to read the repo, reproduce bugs and plan a prioritised lis
 - `--repo /tmp/does-not-exist`: before, `spawnSync git ENOENT`; after, "Repository path does not exist", exit code 2.
 - `--repo "/tmp/my repo" --format json --output -`: valid JSON from a path with a space.
 - `--nope`: usage text, exit code 2.
-- GitHub Actions "Public checks" passed on every pushed commit.
+- GitHub Actions: passed for the first five commits, then failed after the CLI fix. CI runs `npm run build` before `npm test`, and Vitest 4 also ran the compiled tests in `dist/`, where the CLI test couldn't find `src/cli.ts`. Reproduced locally with `npm run build && npm test` (5 failures, all in `dist/test/cli.test.js`), fixed with `vitest.config.ts`, then 25/25 passing.
 
 ## A blocker you hit and how you approached it
 
 My first manual check failed with `spawnSync git ENOENT`, which looked like git was missing. The real cause was that my sample repo folder didn't exist yet: the tool reported a missing path as a git error. I created the sample repos, reran the check, and fixed the misleading message in the Git commit.
+
+After the CLI fix, CI went red even though tests passed on my machine. I reproduced it by running the same steps as CI (`npm run build && npm test`): compiled test copies in `dist/` were being run, and the CLI test couldn't find `src/cli.ts` from there. I limited Vitest to `test/`, confirmed 25/25 locally, and pushed the fix.
 
 ## Known limitations and the next three things you would do
 
@@ -67,9 +70,9 @@ Next three:
 
 1. Parse `git diff -z -M` (renames, non-ASCII names) and optionally include uncommitted and untracked files.
 2. Return structured JSON from MCP (`structuredContent` with an output schema) so agents don't parse Markdown, with a total response size cap.
-3. Fix the build (`bin` path, keep compiled tests out of the test run) and kill the whole process group on timeout.
+3. Fix the `bin` path in package.json and kill the whole process group on timeout.
 
 ## Approximate focused-work time
 
-- Start: 22:00 
-- Finish: 23:20
+- Start: 22:10
+- Finish: 23:20, plus about 15 minutes (23:25–23:40) after first pushing SUBMISSION.md, to fix the CI failure I found then.
