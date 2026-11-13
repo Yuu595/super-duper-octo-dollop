@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -140,6 +140,25 @@ describe("MCP review_repository", () => {
           text: expect.stringContaining("reviewed.md (added)"),
         }),
       );
+    } finally {
+      await close();
+    }
+  });
+
+  it("rejects a base ref starting with a dash without creating its output file", async () => {
+    const root = createTemporaryDirectory();
+    const repositoryPath = createGitRepository(root);
+    const outputPath = join(root, "unexpected-output");
+    const { client, close } = await connectClient({ allowedRoots: [root] });
+
+    try {
+      const result = await client.callTool({
+        name: "review_repository",
+        arguments: { repo_path: repositoryPath, baseRef: `--output=${outputPath}` },
+      });
+
+      expect(result.isError).toBe(true);
+      expect(existsSync(outputPath)).toBe(false);
     } finally {
       await close();
     }
