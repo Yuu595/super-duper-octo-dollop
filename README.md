@@ -62,9 +62,14 @@ Start the stdio server with:
 npm run mcp-server
 ```
 
-It exposes a `review_repository` tool. Inspect the implementation to determine
-its current input contract and whether it is suitable for the production model
-you propose.
+It exposes a `review_repository` tool with inputs `repo_path`, optional
+`baseRef`, and optional `validationCommands`.
+Repository paths must resolve inside an allowed root. Configure roots with
+`INSPECTOR_ALLOWED_ROOTS` using the platform path delimiter; by default, the
+server's starting directory is the only allowed root.
+
+Validation commands are disabled unless they exactly match an entry in
+`INSPECTOR_ALLOWED_VALIDATIONS`, configured as a JSON array of strings.
 
 ## Project layout
 
