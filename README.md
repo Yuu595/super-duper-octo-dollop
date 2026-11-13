@@ -1,7 +1,8 @@
 # Repository Inspector
 
 This is a small TypeScript developer tool that inspects changes in a Git
-repository, runs optional validation commands, and produces a Markdown report.
+repository, runs optional validation commands, and produces a Markdown or JSON
+report.
 It can be used from a command line or exposed to AI clients through MCP.
 
 ## Your task
@@ -50,9 +51,13 @@ npm test
 ```bash
 npm run inspector -- review --repo ./path/to/repo --format markdown
 npm run inspector -- review --repo ./path/to/repo --validate "npm test"
+npm run inspector -- review --repo "./path with spaces" --format json --output -
 ```
 
-The report is written to `review-report.md`.
+The default report is written to `review-report.md`, or `review-report.json`
+when `--format json` is selected. Use `--output <file>` to choose another file
+or `--output -` to print the report to stdout. Repeat `--validate` to run
+multiple validation commands.
 
 ## MCP
 
