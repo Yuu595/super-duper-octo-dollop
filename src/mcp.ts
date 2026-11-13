@@ -21,7 +21,7 @@ function getDefaultRoots(): string[] {
   const configuredRoots = process.env.INSPECTOR_ALLOWED_ROOTS;
   return configuredRoots
     ? configuredRoots.split(delimiter).filter((root) => root.length > 0)
-    : [process.cwd()];
+    : [];
 }
 
 function getDefaultValidations(): string[] {
@@ -57,9 +57,7 @@ function errorMessage(error: unknown): string {
 }
 
 export function createServer(options: ServerOptions = {}): McpServer {
-  const allowedRoots = (options.allowedRoots ?? getDefaultRoots()).map((root) =>
-    realpathSync(root),
-  );
+  const allowedRoots = options.allowedRoots ?? getDefaultRoots();
   const allowedValidations = options.allowedValidations ?? getDefaultValidations();
   const server = new McpServer({ name: "repository-inspector", version: "2.0.0" });
 
@@ -71,8 +69,29 @@ export function createServer(options: ServerOptions = {}): McpServer {
     },
     async (input: ReviewInput) => {
       try {
+        if (allowedRoots.length === 0) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: "No allowed roots configured. Set INSPECTOR_ALLOWED_ROOTS to the folders this server may inspect.",
+              },
+            ],
+          };
+        }
+
+        const resolvedAllowedRoots = allowedRoots.map((root) => {
+          try {
+            return realpathSync(root);
+          } catch (error) {
+            throw new Error(
+              `Unable to resolve configured allowed root "${root}": ${errorMessage(error)}`,
+            );
+          }
+        });
         const repositoryPath = realpathSync(input.repo_path);
-        if (!allowedRoots.some((root) => isWithinRoot(repositoryPath, root))) {
+        if (!resolvedAllowedRoots.some((root) => isWithinRoot(repositoryPath, root))) {
           return {
             isError: true,
             content: [{ type: "text", text: "Repository path is outside the allowed roots." }],

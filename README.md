@@ -59,14 +59,15 @@ The report is written to `review-report.md`.
 Start the stdio server with:
 
 ```bash
-npm run mcp-server
+INSPECTOR_ALLOWED_ROOTS="$PWD" npm run mcp-server
 ```
 
 It exposes a `review_repository` tool with inputs `repo_path`, optional
 `baseRef`, and optional `validationCommands`.
 Repository paths must resolve inside an allowed root. Configure roots with
-`INSPECTOR_ALLOWED_ROOTS` using the platform path delimiter; by default, the
-server's starting directory is the only allowed root.
+`INSPECTOR_ALLOWED_ROOTS` using the platform path delimiter. No roots are
+allowed by default; if none are configured, `review_repository` returns an
+error.
 
 Validation commands are disabled unless they exactly match an entry in
 `INSPECTOR_ALLOWED_VALIDATIONS`, configured as a JSON array of strings.
